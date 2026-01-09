@@ -1,0 +1,5 @@
+-r requirements.txt
+apache-airflow==2.9.0
+black
+flake8
+pytest
