@@ -3,6 +3,14 @@
 ## Visão Geral
 Projeto de engenharia de dados utilizando Apache Airflow para orquestração de pipelines ETL, Postgres como banco de dados e Docker para padronização do ambiente. O objetivo é demonstrar boas práticas de organização, versionamento, automação e observabilidade, com foco em portfólio profissional (LinkedIn/GitHub).
 
+O foco é demonstrar **boas práticas de engenharia**, como:
+- organização de pipelines
+- versionamento de SQL
+- infraestrutura como código
+- automação e validação de dados
+
+O projeto foi desenvolvido com objetivo de **portfólio profissional**, integrando GitHub e LinkedIn.
+
 ## Tecnologias Utilizadas
 - Apache Airflow 2.9.0
 - Python 3.10
@@ -67,4 +75,5 @@ Projeto de engenharia de dados utilizando Apache Airflow para orquestração de 
 - Evolução para ambiente cloud
 
 ## Autor
-Projeto desenvolvido para fins de estudo e portfólio em Engenharia de Dados.
+Projeto desenvolvido para estudo e portfólio em Engenharia de Dados, com foco em Airflow, pipelines ETL e boas práticas de produção.
+Estruturado para evolução contínua e aprendizado aplicado.
