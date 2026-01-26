@@ -1,0 +1,22 @@
+# Python
+airflow-etl/.venv/
+__pycache__/
+*.pyc
+
+
+# Airflow
+airflow.db
+logs/
+plugins/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Docker
+*.log
+
