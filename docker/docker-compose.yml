@@ -45,11 +45,14 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /dags:/opt/airflow/dags
-      - /etl:/opt/airflow/etl
+      - ../dags:/opt/airflow/dags
+      - ../etl:/opt/airflow/etl
+      - ../sql:/opt/airflow/sql
+
     environment:
       <<: *airflow-common-env
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+      PYTHONPATH: /opt/airflow
     command: airflow webserver
     restart: unless-stopped
 
@@ -61,10 +64,13 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - /dags:/opt/airflow/dags
-      - /etl:/opt/airflow/etl
+      - ../dags:/opt/airflow/dags
+      - ../etl:/opt/airflow/etl
+      - ../sql:/opt/airflow/sql
+
     environment:
       <<: *airflow-common-env
+      PYTHONPATH: /opt/airflow
     command: airflow scheduler
     restart: unless-stopped
 

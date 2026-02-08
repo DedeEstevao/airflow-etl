@@ -8,12 +8,12 @@ default_args = {
     "retries": 1,
 }
 
-with DAG(
+with (DAG(
     dag_id="infra_postgres_setup",
     description="Criação de schemas e tabelas base no Postgres",
     default_args=default_args,
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # roda sob demanda
+    schedule=None,  # roda sob demanda
     catchup=False,
     template_searchpath=[
         "/opt/airflow/dags",
@@ -21,7 +21,7 @@ with DAG(
     ],
 
     tags=["infra", "postgres"],
-) as dag:
+) as dag):
 
     create_schemas = SQLExecuteQueryOperator(
         task_id="create_schemas",
@@ -32,19 +32,20 @@ with DAG(
     create_raw_tables = SQLExecuteQueryOperator(
         task_id="create_raw_tables",
         conn_id="postgres_default",
-        sql="raw/010_create_raw_orders.sql",
+        sql="raw/010_create_raw_open_meteo_forecast.sql",
     )
 
-    create_staging_tables = SQLExecuteQueryOperator(
-        task_id="create_staging_tables",
-        conn_id="postgres_default",
-        sql="staging/020_create_staging_orders.sql",
-    )
+    #create_staging_tables = SQLExecuteQueryOperator(
+#        task_id="create_staging_tables",
+ #       conn_id="postgres_default",
+  #      sql="staging/020_create_staging_orders.sql",
+   # )
 
-    create_analytics_tables = SQLExecuteQueryOperator(
-        task_id="create_analytics_tables",
-        conn_id="postgres_default",
-        sql="analytics/030_create_fact_sales.sql",
-    )
+ #   create_analytics_tables = SQLExecuteQueryOperator(
+  #      task_id="create_analytics_tables",
+ #       conn_id="postgres_default",
+ #       sql="analytics/030_create_fact_sales.sql",
+ #   )
 
-    create_schemas >> create_raw_tables >> create_staging_tables >> create_analytics_tables
+    create_schemas >> create_raw_tables
+    # >> create_staging_tables >> create_analytics_tables
