@@ -1,22 +1,77 @@
-# Python
-airflow-etl/.venv/
+# =========================
+# PYTHON
+# =========================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
+# Virtual environments
+venv/
+env/
+.venv/
 
-# Airflow
+# =========================
+# AIRFLOW
+# =========================
+airflow.cfg
 airflow.db
+webserver_config.py
+
+# Logs do Airflow
 logs/
-plugins/
+*.log
 
-# OS
-.DS_Store
-Thumbs.db
+# PID files
+*.pid
 
-# IDE
+# =========================
+# DAGs temporários (se gerar dinamicamente)
+# =========================
+dags/__pycache__/
+
+# =========================
+# ETL / DADOS
+# =========================
+data/
+tmp/
+temp/
+
+# Arquivos comuns de saída
+*.csv
+*.parquet
+*.xlsx
+*.json
+
+# =========================
+# CREDENCIAIS / SEGREDOS
+# =========================
+.env
+.env.*
+*.env
+
+# Chaves e tokens
+*.pem
+*.key
+
+# =========================
+# IDEs / EDITORES
+# =========================
 .idea/
 .vscode/
 
-# Docker
-*.log
+# =========================
+# DOCKER (se estiver usando)
+# =========================
+docker-compose.override.yml
 
+# =========================
+# SISTEMA OPERACIONAL
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# TESTES / CACHE
+# =========================
+.pytest_cache/
+.coverage

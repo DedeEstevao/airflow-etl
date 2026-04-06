@@ -12,7 +12,7 @@ with (DAG(
     dag_id="infra_postgres_setup",
     description="Criação de schemas e tabelas base no Postgres",
     default_args=default_args,
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2025, 1, 1),
     schedule=None,  # roda sob demanda
     catchup=False,
     template_searchpath=[
@@ -35,17 +35,16 @@ with (DAG(
         sql="raw/010_create_raw_open_meteo_forecast.sql",
     )
 
-    #create_staging_tables = SQLExecuteQueryOperator(
-#        task_id="create_staging_tables",
- #       conn_id="postgres_default",
-  #      sql="staging/020_create_staging_orders.sql",
-   # )
+    create_staging_tables = SQLExecuteQueryOperator(
+        task_id="create_staging_tables",
+        conn_id="postgres_default",
+        sql="staging/020_create_staging_open_meteo_forecast.sql",
+    )
 
- #   create_analytics_tables = SQLExecuteQueryOperator(
-  #      task_id="create_analytics_tables",
- #       conn_id="postgres_default",
- #       sql="analytics/030_create_fact_sales.sql",
- #   )
+    create_mart_tables = SQLExecuteQueryOperator(
+        task_id="create_mart_tables",
+        conn_id="postgres_default",
+        sql="mart/030_create_mart_open_meteo_forecast.sql",
+    )
 
-    create_schemas >> create_raw_tables
-    # >> create_staging_tables >> create_analytics_tables
+    create_schemas >> create_raw_tables >> create_staging_tables >> create_mart_tables
