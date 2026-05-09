@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS mart;
+
 CREATE TABLE IF NOT EXISTS mart.open_meteo_forecast (
     city TEXT,
     latitude DOUBLE PRECISION NOT NULL,

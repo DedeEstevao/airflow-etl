@@ -1,3 +1,4 @@
+CREATE SCHEMA IF NOT EXISTS staging;
 
 CREATE TABLE IF NOT EXISTS staging.open_meteo_forecast (
     id BIGSERIAL PRIMARY KEY,

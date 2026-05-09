@@ -16,6 +16,8 @@ def load_analytics(postgres_conn_id="postgres_default"):
     WITH aggregated AS (
         SELECT
             city,
+            latitude,
+            longitude,
             DATE(forecast_datetime) AS date,
             AVG(temperature) AS avg_temperature,
             MIN(temperature) AS min_temperature,
@@ -23,13 +25,15 @@ def load_analytics(postgres_conn_id="postgres_default"):
             AVG(precipitation_probability) AS avg_precipitation_probability,
             MAX(model_run_datetime) AS model_run_datetime
         FROM mart.open_meteo_forecast
-        GROUP BY city, DATE(forecast_datetime)
+        GROUP BY city, latitude, longitude, DATE(forecast_datetime)
     ),
 
     inserted AS (
         INSERT INTO analytics.weather_daily (
             city,
-            date,
+            latitude,
+            longitude,
+            forecast_date,
             avg_temperature,
             min_temperature,
             max_temperature,
@@ -39,7 +43,7 @@ def load_analytics(postgres_conn_id="postgres_default"):
         SELECT *
         FROM aggregated
 
-        ON CONFLICT (city, date)
+        ON CONFLICT (city, forecast_date)
         DO UPDATE SET
             avg_temperature = EXCLUDED.avg_temperature,
             min_temperature = EXCLUDED.min_temperature,
