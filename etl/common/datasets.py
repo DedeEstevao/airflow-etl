@@ -43,3 +43,8 @@ weather_features_dataset = Dataset(
 model_metadata_dataset = Dataset(
     "postgres://postgres/airflow/analytics/model_metadata"
 )
+
+
+trained_model_dataset = Dataset(
+    "ml://weather_model/trained"
+)

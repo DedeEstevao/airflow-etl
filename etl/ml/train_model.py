@@ -356,6 +356,7 @@ def run_training(
             is_active
 
         )
+        
         VALUES (
 
             %s,
