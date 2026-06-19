@@ -4,6 +4,7 @@ x-airflow-common-env: &airflow-common-env
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
   AIRFLOW__WEBSERVER__SECRET_KEY: "airflow-super-secret-key-123"
   AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://airflow:airflow@postgres:5432/airflow
+  AIRFLOW_CONN_OPEN_METEO: postgresql://airflow:airflow@postgres:5432/open_meteo
 services:
 
   postgres:
@@ -33,6 +34,28 @@ services:
       <<: *airflow-common-env
     command: airflow db migrate
     restart: "no"
+
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
+
+    container_name: superset
+
+    ports:
+      - "8088:8088"
+
+    volumes:
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+      - superset_home:/app/superset_home
+        
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
 
   airflow-webserver:
     build:
@@ -77,3 +100,4 @@ services:
 
 volumes:
   postgres-db:
+  superset_home:

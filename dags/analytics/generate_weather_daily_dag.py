@@ -1,5 +1,4 @@
 from airflow.decorators import dag, task
-from airflow import Dataset
 from datetime import timedelta
 import pendulum
 
@@ -12,7 +11,7 @@ from etl.common.datasets import (
     weather_daily_dataset,
 )
 
-from etl.analytics.load_open_meteo_forecast_analytics import load_analytics
+from etl.analytics.create_weather_daily_forecast_analytics import load_daily_analytics
 
 
 DEFAULT_ARGS = {
@@ -24,7 +23,7 @@ DEFAULT_ARGS = {
 
 
 @dag(
-    dag_id="open_meteo_analytics",
+    dag_id="weather_daily_analytics",
     description="Analytics DAG for daily weather features, MART -> ANALYTICS",
     default_args=DEFAULT_ARGS,
     schedule=[mart_dataset],  # dispara qdo mart atualiza
@@ -39,17 +38,17 @@ DEFAULT_ARGS = {
 )
 
 
-def open_meteo_analytics():
+def weather_daily_analytics():
 
     ensure_analytics_tables = SQLExecuteQueryOperator(
         task_id="ensure_analytics_tables",
-        conn_id="postgres_default",
+        conn_id="open_meteo",
         sql="analytics/040_create_analytics_weather_daily.sql",
     )
 
     @task(outlets=[weather_daily_dataset])
     def analytics_task():
-        return load_analytics(postgres_conn_id="postgres_default")
+        return load_daily_analytics(postgres_conn_id="open_meteo")
 
 
     analytics = analytics_task()
@@ -59,4 +58,4 @@ def open_meteo_analytics():
     ensure_analytics_tables >> analytics
 
 
-dag_instance = open_meteo_analytics()
+dag_instance = weather_daily_analytics()
