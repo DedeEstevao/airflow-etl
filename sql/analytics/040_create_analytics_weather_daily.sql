@@ -20,13 +20,18 @@ CREATE TABLE IF NOT EXISTS analytics.weather_daily (
 
     avg_precipitation_probability DOUBLE PRECISION,
 
+    total_rain DOUBLE PRECISION,
+    
+    max_rain DOUBLE PRECISION,
+
     model_run_datetime TIMESTAMPTZ,
 
     created_at TIMESTAMPTZ DEFAULT now(),
 
     CONSTRAINT uq_weather_daily
     UNIQUE (
-        city,
+        latitude,
+        longitude,
         forecast_date
     )
 );
@@ -36,7 +41,7 @@ CREATE TABLE IF NOT EXISTS analytics.weather_daily (
 -- =====================================================
 
 CREATE INDEX IF NOT EXISTS idx_weather_daily_city
-ON analytics.weather_daily(city);
+ON analytics.weather_daily(latitude, longitude);
 
 CREATE INDEX IF NOT EXISTS idx_weather_daily_forecast_date
 ON analytics.weather_daily(forecast_date);

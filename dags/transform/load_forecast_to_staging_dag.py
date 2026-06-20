@@ -1,5 +1,4 @@
 from airflow.decorators import dag, task
-from airflow import Dataset
 from datetime import timedelta
 import pendulum
 
@@ -8,11 +7,11 @@ from airflow.providers.common.sql.operators.sql import (
 )
 
 from etl.common.datasets import (
-    raw_dataset,
-    staging_dataset,
+    raw_forecast_dataset,
+    staging_forecast_dataset,
 )
-from etl.load.load_open_meteo_forecast_staging import load_staging
-from etl.quality.check_open_meteo_staging import (
+from etl.load.load_weather_forecast_staging import load_staging
+from etl.quality.check_weather_forecast_staging import (
     check_staging_quality_incremental)
 
 
@@ -26,10 +25,10 @@ DEFAULT_ARGS = {
 
 
 @dag(
-    dag_id="open_meteo_transform",
+    dag_id="load_forecast_weather_to_staging",
     description="Transform RAW → STAGING",
     default_args=DEFAULT_ARGS,
-    schedule=[raw_dataset],  # dispara qdo raw atualiza
+    schedule=[raw_forecast_dataset],  # dispara qdo raw atualiza
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
     max_active_runs=1,
     catchup=False,
@@ -41,17 +40,17 @@ DEFAULT_ARGS = {
 )
 
 
-def open_meteo_transform():
+def load_forecast_weather_dag():
 
-    ensure_staging_tables = SQLExecuteQueryOperator(
-        task_id="ensure_staging_tables",
-        conn_id="postgres_default",
-        sql="staging/020_create_staging_open_meteo_forecast.sql",
+    ensure_forecast_staging_tables = SQLExecuteQueryOperator(
+        task_id="ensure_forecast_staging_tables",
+        conn_id="open_meteo",
+        sql="staging/020_create_staging_weather_forecast.sql",
     )
 
-    @task(outlets=[staging_dataset])
+    @task(outlets=[staging_forecast_dataset])
     def staging_task():
-        return load_staging(postgres_conn_id="postgres_default")
+        return load_staging(postgres_conn_id="open_meteo")
 
     @task
     def data_quality_task():
@@ -62,7 +61,7 @@ def open_meteo_transform():
         interval_end = context["data_interval_end"]
 
         check_staging_quality_incremental(
-            postgres_conn_id="postgres_default",
+            postgres_conn_id="open_meteo",
             interval_start=interval_start,
             interval_end=interval_end,
         )
@@ -71,6 +70,6 @@ def open_meteo_transform():
     dq = data_quality_task()
     
 
-    ensure_staging_tables >> staging >> dq
+    ensure_forecast_staging_tables >> staging >> dq
 
-dag_instance = open_meteo_transform()
+dag_instance = load_forecast_weather_dag()

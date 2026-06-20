@@ -25,26 +25,58 @@ with (DAG(
 
     create_schemas = SQLExecuteQueryOperator(
         task_id="create_schemas",
-        conn_id="postgres_default",
+        conn_id="open_meteo",
         sql="schemas/001_create_schemas.sql",
     )
 
-    create_raw_tables = SQLExecuteQueryOperator(
-        task_id="create_raw_tables",
-        conn_id="postgres_default",
-        sql="raw/010_create_raw_open_meteo_forecast.sql",
+    create_raw_tables_forecast = SQLExecuteQueryOperator(
+        task_id="create_raw_tables_forecast",
+        conn_id="open_meteo",
+        sql="raw/010_create_raw_weather_forecast.sql",
     )
 
-    create_staging_tables = SQLExecuteQueryOperator(
-        task_id="create_staging_tables",
-        conn_id="postgres_default",
-        sql="staging/020_create_staging_open_meteo_forecast.sql",
+    create_raw_tables_observed = SQLExecuteQueryOperator(
+        task_id="create_raw_tables_observed",
+        conn_id="open_meteo",
+        sql="raw/011_create_raw_weather_observed.sql",
+    )
+
+    create_staging_tables_forecast = SQLExecuteQueryOperator(
+        task_id="create_staging_tables_forecast",
+        conn_id="open_meteo",
+        sql="staging/020_create_staging_weather_forecast.sql",
+    )
+
+    create_staging_tables_observed = SQLExecuteQueryOperator(
+        task_id="create_staging_tables_observed",
+        conn_id="open_meteo",
+        sql="staging/021_create_staging_weather_observed.sql",
     )
 
     create_mart_tables = SQLExecuteQueryOperator(
         task_id="create_mart_tables",
-        conn_id="postgres_default",
-        sql="mart/030_create_mart_open_meteo_forecast.sql",
+        conn_id="open_meteo",
+        sql="mart/030_create_mart_weather_forecast.sql",
     )
 
-    create_schemas >> create_raw_tables >> create_staging_tables >> create_mart_tables
+    create_mart_accuracy_tables = SQLExecuteQueryOperator(
+        task_id="create_mart_accuracy_tables",
+        conn_id="open_meteo",
+        sql="mart/031_create_weather_forecast_accuracy.sql",
+    )
+
+    create_analytics_weather_daily_tables = SQLExecuteQueryOperator(
+        task_id="create_analytics_weather_daily_tables",
+        conn_id="open_meteo",
+        sql="analytics/040_create_analytics_weather_daily.sql",
+    )
+
+    (
+        create_schemas 
+        >> create_raw_tables_forecast 
+        >> create_raw_tables_observed 
+        >> create_staging_tables_forecast 
+        >> create_staging_tables_observed 
+        >> create_mart_tables
+        >> create_mart_accuracy_tables
+    )

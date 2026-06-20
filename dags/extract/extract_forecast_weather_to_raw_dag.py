@@ -1,6 +1,5 @@
 
 from airflow.decorators import dag, task
-from airflow import Dataset
 from datetime import timedelta
 import pendulum
 
@@ -8,9 +7,12 @@ from airflow.providers.common.sql.operators.sql import (
     SQLExecuteQueryOperator,
 )
 
-from etl.extract.extract_open_meteo_to_raw import extract_open_meteo
-from etl.extract.extract_open_meteo_to_raw import load_open_meteo
+from etl.extract.extract_forecast_to_raw import extract_forecast_to_raw
+from etl.extract.extract_forecast_to_raw import load_forecast_weather_raw
 
+from etl.common.datasets import (
+    raw_forecast_dataset,
+)
 
 DEFAULT_ARGS = {
     "owner": "data-engineering",
@@ -18,7 +20,6 @@ DEFAULT_ARGS = {
     "retry_delay": timedelta(minutes=5),
 }
 
-raw_dataset = Dataset("postgres://postgres/airflow/raw/open_meteo_forecast")
 
 CITIES = [
     {"name": "Sao_Paulo", "lat": -23.55, "lon": -46.63},
@@ -28,9 +29,9 @@ CITIES = [
   
 
 @dag(
-    dag_id="extract_open_meteo_to_raw",
-    description="Extract hourly weather data from Open-Meteo API into raw"
-                " JSONB layer",
+    dag_id="extract_forecast_weather_to_raw",
+    description="Extract hourly weather forecast data "
+                "from Open-Meteo API into raw layer",
     default_args=DEFAULT_ARGS,
     schedule="@hourly",
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
@@ -41,43 +42,45 @@ CITIES = [
         "/opt/airflow/sql",
     ],
 
-    tags=["extract", "api", "raw", "open-meteo"],
+    tags=["extract", "api", "raw", "open-meteo", "forecast"],
 )
 
     
 
-def extract_open_meteo_dag():
+def extract_forecast_weather_dag():
     
     ensure_raw_tables = SQLExecuteQueryOperator(
-        task_id="ensure_raw_tables",
-        conn_id="postgres_default",
-        sql="raw/010_create_raw_open_meteo_forecast.sql",
+        task_id="ensure_raw_weather_forecast_tables",
+        conn_id="open_meteo",
+        sql="raw/010_create_raw_weather_forecast.sql",
     )
     
 
-    @task(outlets=[raw_dataset])
-    def extract_and_load_task(city: dict):
+    @task(outlets=[raw_forecast_dataset])
+    def extract_forecast_city(city: dict):
+
         from airflow.operators.python import get_current_context
 
         context = get_current_context()
         run_id = context["run_id"]
 
-        payload = extract_open_meteo(
+        payload = extract_forecast_to_raw(
             latitude=city["lat"],
             longitude=city["lon"],
         )
 
-        load_open_meteo(
+        load_forecast_weather_raw(
             city=city["name"],
             latitude=city["lat"],
             longitude=city["lon"],
             payload=payload,
-            postgres_conn_id="postgres_default",
+            postgres_conn_id="open_meteo",
             dag_run_id=run_id,
+
         )
 
-    extraction = extract_and_load_task.expand(city=CITIES)
+    extraction = extract_forecast_city.expand(city=CITIES)
 
     ensure_raw_tables >> extraction
 
-dag_instance = extract_open_meteo_dag()
+dag_instance = extract_forecast_weather_dag()

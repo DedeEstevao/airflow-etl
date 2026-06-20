@@ -4,16 +4,24 @@ from airflow import Dataset
 # RAW
 # =====================================================
 
-raw_dataset = Dataset(
-    "postgres://postgres/airflow/raw/open_meteo_forecast"
+raw_forecast_dataset = Dataset(
+    "postgres://postgres/airflow/raw/weather_forecast"
+)
+
+raw_observed_dataset = Dataset(
+    "postgres://postgres/airflow/raw/weather_observed"
 )
 
 # =====================================================
 # STAGING
 # =====================================================
 
-staging_dataset = Dataset(
-    "postgres://postgres/airflow/staging/open_meteo_forecast"
+staging_forecast_dataset = Dataset(
+    "postgres://postgres/airflow/staging/weather_forecast"
+)
+
+staging_observed_dataset = Dataset(
+    "postgres://postgres/airflow/staging/weather_observed"
 )
 
 # =====================================================
@@ -30,21 +38,4 @@ mart_dataset = Dataset(
 
 weather_daily_dataset = Dataset(
     "postgres://postgres/airflow/analytics/weather_daily"
-)
-
-weather_features_dataset = Dataset(
-    "postgres://postgres/airflow/analytics/weather_features"
-)
-
-# =====================================================
-# MACHINE LEARNING
-# =====================================================
-
-model_metadata_dataset = Dataset(
-    "postgres://postgres/airflow/analytics/model_metadata"
-)
-
-
-trained_model_dataset = Dataset(
-    "ml://weather_model/trained"
 )

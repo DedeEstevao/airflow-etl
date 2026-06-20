@@ -23,7 +23,7 @@ def check_staging_quality_incremental(
     # 1️⃣ Null check
     cursor.execute(f"""
         SELECT COUNT(*)
-        FROM staging.open_meteo_forecast
+        FROM staging.weather_forecast
         WHERE forecast_datetime IS NULL
         AND {base_filter}
     """, (interval_start, interval_end))
@@ -34,7 +34,7 @@ def check_staging_quality_incremental(
     # 2️⃣ Temperature range
     cursor.execute(f"""
         SELECT COUNT(*)
-        FROM staging.open_meteo_forecast
+        FROM staging.weather_forecast
         WHERE (temperature < -60 OR temperature > 60)
         AND {base_filter}
     """, (interval_start, interval_end))
@@ -45,18 +45,32 @@ def check_staging_quality_incremental(
     # 3️⃣ Negative precipitation
     cursor.execute(f"""
         SELECT COUNT(*)
-        FROM staging.open_meteo_forecast
-        WHERE precipitation < 0
+        FROM staging.weather_forecast
+        WHERE (precipitation_probability < 0 
+                   OR precipitation_probability > 100)
         AND {base_filter}
     """, (interval_start, interval_end))
 
-    if cursor.fetchone()[0] > 0:
-        raise ValueError("DQ Failed: Negative precipitation")
 
+    if cursor.fetchone()[0] > 0:
+        raise ValueError("DQ Failed: Invalid precipitation probability")
+
+    # 3️⃣ Negative rain
+    cursor.execute(f"""
+        SELECT COUNT(*)
+        FROM staging.weather_forecast
+        WHERE rain < 0
+        AND {base_filter}
+    """, (interval_start, interval_end))
+
+
+    if cursor.fetchone()[0] > 0:
+        raise ValueError("DQ Failed: Negative rain")
+    
     # 4️⃣ Deve haver registros novos
     cursor.execute(f"""
         SELECT COUNT(*)
-        FROM staging.open_meteo_forecast
+        FROM staging.weather_forecast
         WHERE {base_filter}
     """, (interval_start, interval_end))
 
@@ -68,3 +82,4 @@ def check_staging_quality_incremental(
 
     cursor.close()
     conn.close()
+    

@@ -18,7 +18,7 @@ def get_last_processed_timestamp(postgres_conn_id: str) -> datetime:
             MAX(raw_ingested_at),
             TIMESTAMPTZ '1900-01-01 00:00:00+00'
         )
-        FROM staging.open_meteo_forecast;
+        FROM staging.weather_forecast;
     """
 
     watermark = hook.get_first(sql)[0]
@@ -42,14 +42,15 @@ def insert_incremental_forecast(
 
     sql = """
         WITH inserted AS (
-            INSERT INTO staging.open_meteo_forecast (
+            INSERT INTO staging.weather_forecast (
               city,
               latitude,
               longitude,
               model_run_datetime,
               forecast_datetime,
               temperature,
-              precipitation,
+              precipitation_probability,
+              rain,
               raw_payload_hash,
               raw_ingested_at
            )
@@ -62,19 +63,35 @@ def insert_incremental_forecast(
                  AS model_run_datetime,
              (t.time_value)::timestamptz AS forecast_datetime,
              weather.temperature,
-             weather.precipitation,
+             weather.precipitation_probability,
+             weather.rain,
              r.payload_hash,
              date_trunc('hour', r.ingested_at)
-           FROM raw.open_meteo_forecast r
+           FROM raw.weather_forecast r
 
            CROSS JOIN LATERAL
-             jsonb_array_elements_text(r.payload::jsonb->'hourly'->'time')
+             jsonb_array_elements_text(r.payload->'hourly'->'time')
              WITH ORDINALITY AS t(time_value, idx)
 
            LEFT JOIN LATERAL (
              SELECT
-               (r.payload->'hourly'->'temperature_2m'->>((idx-1)::int))::numeric AS temperature,
-               (r.payload->'hourly'->'precipitation_probability'->>((idx-1)::int))::numeric AS precipitation
+                (
+                 r.payload->'hourly'
+                 ->'temperature_2m'
+                   ->>((idx - 1)::int)
+                )::numeric AS temperature,
+
+                (
+                r.payload->'hourly'
+                ->'precipitation_probability'
+                ->>((idx - 1)::int)
+                )::numeric AS precipitation_probability,
+
+                (
+                 r.payload->'hourly'
+                 ->'rain'
+                 ->>((idx - 1)::int)
+                )::numeric AS rain
            ) AS weather ON TRUE
 
            WHERE r.ingested_at >= %s
@@ -115,7 +132,7 @@ def insert_incremental_forecast(
     return rows_inserted
 
 
-def load_staging(postgres_conn_id: str = "postgres_default"):
+def load_staging(postgres_conn_id: str = "open_meteo"):
     """
     Main entrypoint for Airflow task.
     """
@@ -135,4 +152,3 @@ def load_staging(postgres_conn_id: str = "postgres_default"):
     )
 
     return rows_inserted
-

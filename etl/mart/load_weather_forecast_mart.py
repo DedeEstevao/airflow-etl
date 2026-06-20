@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def load_mart(postgres_conn_id: str = "postgres_default"):
+def load_mart(postgres_conn_id: str = "open_meteo"):
 
     logger.info("Starting MART load...")
 
@@ -19,7 +19,7 @@ def load_mart(postgres_conn_id: str = "postgres_default"):
             MAX(model_run_datetime),
             TIMESTAMPTZ '1900-01-01 00:00:00+00'
         )
-        FROM mart.open_meteo_forecast;
+        FROM mart.weather_forecast;
     """)
 
     watermark = cursor.fetchone()[0]
@@ -29,11 +29,12 @@ def load_mart(postgres_conn_id: str = "postgres_default"):
     sql = """
     WITH filtered AS (
         SELECT *
-        FROM staging.open_meteo_forecast s
+        FROM staging.weather_forecast s
         WHERE
             s.model_run_datetime >= %s
             AND s.temperature IS NOT NULL
-            AND COALESCE(s.precipitation, 0) BETWEEN 0 AND 100
+            AND s.rain IS NOT NULL
+            AND COALESCE(s.precipitation_probability, 0) BETWEEN 0 AND 100
     ),
 
     deduplicated AS (
@@ -43,7 +44,8 @@ def load_mart(postgres_conn_id: str = "postgres_default"):
             longitude,
             forecast_datetime,
             temperature,
-            precipitation,
+            precipitation_probability,
+            rain,
             model_run_datetime
         FROM filtered
         ORDER BY
@@ -54,22 +56,33 @@ def load_mart(postgres_conn_id: str = "postgres_default"):
     ),
 
     inserted AS (
-        INSERT INTO mart.open_meteo_forecast (
+        INSERT INTO mart.weather_forecast (
             city,
             latitude,
             longitude,
             forecast_datetime,
             temperature,
+            rain,
             precipitation_probability,
             model_run_datetime
         )
-        SELECT *
+
+        SELECT
+            city,
+            latitude,
+            longitude,
+            forecast_datetime,
+            temperature,
+            rain,
+            precipitation_probability,
+            model_run_datetime
         FROM deduplicated
 
         ON CONFLICT (latitude, longitude, forecast_datetime)
         DO UPDATE SET
             temperature = EXCLUDED.temperature,
             precipitation_probability = EXCLUDED.precipitation_probability,
+            rain = EXCLUDED.rain,
             model_run_datetime = EXCLUDED.model_run_datetime
 
         RETURNING 1
@@ -78,14 +91,19 @@ def load_mart(postgres_conn_id: str = "postgres_default"):
     SELECT COUNT(*) FROM inserted;
     """
 
-    cursor.execute(sql, (watermark,))
-    rows_inserted = cursor.fetchone()[0]
+    try:
+        cursor.execute(sql, (watermark,))
+        rows_inserted = cursor.fetchone()[0]
 
-    conn.commit()
+        conn.commit()
 
-    logger.info(f"MART load completed. Rows inserted/updated: {rows_inserted}")
+    except Exception:
+        conn.rollback()
+        logger.exception("Error loading MART")
+        raise
 
-    cursor.close()
-    conn.close()
+    finally:
+        cursor.close()
+        conn.close()
 
     return rows_inserted

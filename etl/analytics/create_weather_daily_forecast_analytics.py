@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def load_analytics(postgres_conn_id="postgres_default"):
+def load_daily_analytics(postgres_conn_id="open_meteo"):
 
     logger.info("Starting ANALYTICS load...")
 
@@ -23,8 +23,10 @@ def load_analytics(postgres_conn_id="postgres_default"):
             MIN(temperature) AS min_temperature,
             MAX(temperature) AS max_temperature,
             AVG(precipitation_probability) AS avg_precipitation_probability,
+            SUM(rain) AS total_rain,
+            MAX(rain) AS max_rain,
             MAX(model_run_datetime) AS model_run_datetime
-        FROM mart.open_meteo_forecast
+        FROM mart.weather_forecast
         GROUP BY city, latitude, longitude, DATE(forecast_datetime)
     ),
 
@@ -38,17 +40,33 @@ def load_analytics(postgres_conn_id="postgres_default"):
             min_temperature,
             max_temperature,
             avg_precipitation_probability,
+            total_rain,
+            max_rain,
             model_run_datetime
         )
-        SELECT *
+        
+        SELECT
+            city,
+            latitude,
+            longitude,
+            date,
+            avg_temperature,
+            min_temperature,
+            max_temperature,
+            avg_precipitation_probability,
+            total_rain,
+            max_rain,
+            model_run_datetime
         FROM aggregated
 
-        ON CONFLICT (city, forecast_date)
+        ON CONFLICT (latitude, longitude, forecast_date)
         DO UPDATE SET
             avg_temperature = EXCLUDED.avg_temperature,
             min_temperature = EXCLUDED.min_temperature,
             max_temperature = EXCLUDED.max_temperature,
             avg_precipitation_probability = EXCLUDED.avg_precipitation_probability,
+            total_rain = EXCLUDED.total_rain,
+            max_rain = EXCLUDED.max_rain,
             model_run_datetime = EXCLUDED.model_run_datetime
 
         RETURNING 1
@@ -57,13 +75,19 @@ def load_analytics(postgres_conn_id="postgres_default"):
     SELECT COUNT(*) FROM inserted;
     """
 
-    cursor.execute(sql)
-    rows = cursor.fetchone()[0]
-    conn.commit()
+    try:
+        cursor.execute(sql,)
+        rows_inserted = cursor.fetchone()[0]
 
-    logger.info(f"ANALYTICS load completed. Rows: {rows}")
+        conn.commit()
 
-    cursor.close()
-    conn.close()
+    except Exception:
+        conn.rollback()
+        logger.exception("Error loading ANALYTICS weather daily data")
+        raise
 
-    return rows
+    finally:
+        cursor.close()
+        conn.close()
+
+    return rows_inserted
